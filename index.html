@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Animate Favicon — demos</title>
+<link rel="icon" type="image/svg+xml"
+  href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%230f172a'/><polygon points='8,14 20,14 20,26 8,26' fill='%232dd4bf'/><polygon points='8,14 14,8 26,8 20,14' fill='%235eead4'/><polygon points='20,14 26,8 26,20 20,26' fill='%230ea5e9'/></svg>">
+<style>
+  :root{
+    --bg0:#0b1120; --bg1:#0f172a; --bg2:#1e293b;
+    --ink:#e2e8f0; --muted:#94a3b8; --line:#334155;
+    --teal:#2dd4bf; --cyan:#22d3ee; --sky:#38bdf8;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font:15px/1.6 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(1200px 600px at 70% -10%, #15324a 0%, transparent 60%),
+      linear-gradient(160deg,var(--bg0),var(--bg1) 60%,var(--bg2));
+    min-height:100vh; padding:48px 20px 64px;
+  }
+  .wrap{max-width:640px;margin:0 auto;text-align:center}
+  h1{font-size:clamp(26px,4vw,36px);margin:0 0 10px;letter-spacing:-.02em}
+  h1 .grad{background:linear-gradient(90deg,var(--teal),var(--sky));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{color:var(--muted);margin:0 auto 32px;max-width:42ch}
+  .demos{display:flex;flex-direction:column;gap:14px;text-align:left}
+  a.demo{
+    display:block;padding:18px 20px;border-radius:14px;
+    background:#0f172abf;border:1px solid var(--line);
+    color:var(--ink);text-decoration:none;transition:.15s border-color;
+  }
+  a.demo:hover{border-color:var(--teal)}
+  a.demo strong{display:block;font-size:17px;margin-bottom:4px;color:#fff}
+  a.demo span{color:var(--muted);font-size:13px}
+  a.demo .tag{
+    display:inline-block;margin-top:8px;font-size:11px;font-weight:600;
+    text-transform:uppercase;letter-spacing:.06em;
+    color:var(--teal);background:#134e4a33;padding:3px 8px;border-radius:6px;
+  }
+  footer{margin-top:40px;color:var(--muted);font-size:13px}
+  footer a{color:var(--cyan)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1><span class="grad">Animate favicon</span></h1>
+  <p class="sub">Live demos of a 3D model unfurling into your browser tab icon — built with Three.js and frame-by-frame PNG updates.</p>
+
+  <nav class="demos" aria-label="Demos">
+    <a class="demo" href="demo.html">
+      <strong>3D Favicon Unfurl</strong>
+      <span>Full interactive demo with live preview, mock tab strip, scrubber, and browser-support notes. Plays once on load.</span>
+      <span class="tag">Recommended</span>
+    </a>
+    <a class="demo" href="demo2.html">
+      <strong>Unfurl Favicon Demo (looping)</strong>
+      <span>Compact demo with automatic fold/unfold loop and manual controls.</span>
+      <span class="tag">Auto loop</span>
+    </a>
+  </nav>
+
+  <footer>
+  <a href="https://github.com/townie/animate-favicon">View source on GitHub</a>
+  </footer>
+</div>
+</body>
+</html>
