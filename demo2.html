@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Unfurl Favicon Demo</title>
+  <link rel="icon" id="favicon" type="image/png" href="" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      line-height: 1.5;
+    }
+
+    .wrap {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 2rem 1.25rem 4rem;
+    }
+
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-bottom: 0.35rem;
+    }
+
+    .lead {
+      color: #94a3b8;
+      margin-bottom: 1.5rem;
+      font-size: 0.95rem;
+    }
+
+    .lead strong { color: #c4b5fd; }
+
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
+
+    .card h2 {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #94a3b8;
+      margin-bottom: 0.75rem;
+    }
+
+    .preview-row {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      flex-wrap: wrap;
+    }
+
+    #preview {
+      width: 256px;
+      height: 256px;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      background: #0f172a;
+      border: 2px solid #475569;
+      border-radius: 8px;
+    }
+
+    .preview-note {
+      flex: 1;
+      min-width: 200px;
+      font-size: 0.875rem;
+      color: #94a3b8;
+    }
+
+    label {
+      display: block;
+      font-size: 0.875rem;
+      margin-bottom: 0.35rem;
+      color: #cbd5e1;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      margin-bottom: 0.5rem;
+      accent-color: #818cf8;
+    }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+    }
+
+    button {
+      background: #4f46e5;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    button:hover { background: #6366f1; }
+    button.secondary {
+      background: #334155;
+    }
+    button.secondary:hover { background: #475569; }
+
+    .status {
+      font-size: 0.8rem;
+      color: #64748b;
+      margin-top: 0.5rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .auto-badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #a5b4fc;
+      background: #312e81;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      margin-left: 0.5rem;
+      vertical-align: middle;
+    }
+
+    #gl-canvas { display: none; }
+  </style>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.170.0/build/three.module.js"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div class="wrap">
+    <h1>3D unfurl favicon demo</h1>
+    <p class="lead">
+      On load, the tab icon <strong>unfurls automatically</strong> in a loop (32×32 Three.js → PNG →
+      <strong>&lt;link rel="icon"&gt;</strong>). Watch the browser tab — no scrolling required.
+    </p>
+
+    <div class="card">
+      <h2>Favicon preview (8× scale)</h2>
+      <div class="preview-row">
+        <canvas id="preview" width="256" height="256" aria-label="Favicon preview at 8x zoom"></canvas>
+        <p class="preview-note">
+          The real favicon is 32×32 pixels. Animation starts ~0.5s after the page opens and loops fold → unfold.
+        </p>
+      </div>
+      <p class="status" id="status">Unfurl: 0% <span class="auto-badge" id="auto-badge">AUTO</span></p>
+    </div>
+
+    <div class="card">
+      <h2>Controls (optional)</h2>
+      <p class="preview-note" style="margin-bottom: 0.75rem;">
+        Drag the slider or use the buttons to override the loop. Click Resume auto to go back to automatic playback.
+      </p>
+      <label for="unfurl">Unfurl amount</label>
+      <input type="range" id="unfurl" min="0" max="100" value="0" />
+      <div class="btn-row">
+        <button type="button" id="resume-auto">Resume auto</button>
+        <button type="button" id="play">Play once</button>
+        <button type="button" id="reset" class="secondary">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <canvas id="gl-canvas" width="32" height="32"></canvas>
+
+  <script type="module">
+    import * as THREE from "three";
+
+    const FAVICON_SIZE = 32;
+    const UNFURL_MAX = Math.PI * 0.5;
+    const UNFURL_DURATION_MS = 2200;
+    const HOLD_OPEN_MS = 1400;
+    const HOLD_CLOSED_MS = 800;
+    const AUTO_START_DELAY_MS = 500;
+
+    const faviconLink = document.getElementById("favicon");
+    const previewCanvas = document.getElementById("preview");
+    const previewCtx = previewCanvas.getContext("2d");
+    const statusEl = document.getElementById("status");
+    const autoBadge = document.getElementById("auto-badge");
+    const slider = document.getElementById("unfurl");
+
+    const canvas = document.getElementById("gl-canvas");
+    const renderer = new THREE.WebGLRenderer({
+      canvas,
+      antialias: true,
+      alpha: true,
+      preserveDrawingBuffer: true,
+    });
+    renderer.setSize(FAVICON_SIZE, FAVICON_SIZE, false);
+    renderer.setPixelRatio(1);
+    renderer.setClearColor(0x0f172a, 1);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+    camera.position.set(0, 0.2, 2.4);
+    camera.lookAt(0, 0, 0);
+
+    const root = new THREE.Group();
+    scene.add(root);
+
+    const panelMaterial = new THREE.MeshBasicMaterial({
+      color: 0x818cf8,
+      side: THREE.DoubleSide,
+    });
+    const foldMaterial = new THREE.MeshBasicMaterial({
+      color: 0x4f46e5,
+      side: THREE.DoubleSide,
+    });
+
+    const panelW = 0.45;
+    const panelH = 0.9;
+
+    function makePanel(material) {
+      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(panelW, panelH), material);
+      mesh.geometry.translate(panelW / 2, 0, 0);
+      return mesh;
+    }
+
+    const top = makePanel(panelMaterial);
+    const bottom = makePanel(panelMaterial);
+    const left = makePanel(foldMaterial);
+    const right = makePanel(foldMaterial);
+
+    top.position.y = panelH / 2;
+    bottom.position.y = -panelH / 2;
+    bottom.rotation.z = Math.PI;
+    left.position.x = -panelH / 2;
+    left.rotation.z = Math.PI / 2;
+    right.position.x = panelH / 2;
+    right.rotation.z = -Math.PI / 2;
+
+    root.add(top, bottom, left, right);
+
+    let unfurl = 0;
+    let autoLoop = true;
+    let animPhase = "idle";
+    let phaseStart = 0;
+    let playDirection = 1;
+
+    function easeInOut(t) {
+      return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    }
+
+    function applyUnfurl(t) {
+      unfurl = Math.max(0, Math.min(1, t));
+      const angle = unfurl * UNFURL_MAX;
+
+      top.rotation.x = -angle;
+      bottom.rotation.x = angle;
+      left.rotation.y = angle;
+      right.rotation.y = -angle;
+
+      root.rotation.y = unfurl * 0.35;
+      root.rotation.x = unfurl * 0.15;
+
+      if (!slider.matches(":active")) {
+        slider.value = String(Math.round(unfurl * 100));
+      }
+      const mode = autoLoop ? "AUTO" : "manual";
+      statusEl.innerHTML = `Unfurl: ${Math.round(unfurl * 100)}% <span class="auto-badge">${mode}</span>`;
+      autoBadge.textContent = mode;
+    }
+
+    function renderFrame() {
+      renderer.render(scene, camera);
+      faviconLink.href = canvas.toDataURL("image/png");
+
+      previewCtx.imageSmoothingEnabled = false;
+      previewCtx.clearRect(0, 0, 256, 256);
+      previewCtx.drawImage(canvas, 0, 0, 256, 256);
+    }
+
+    function setUnfurl(t) {
+      applyUnfurl(t);
+      renderFrame();
+    }
+
+    function startAutoLoop() {
+      autoLoop = true;
+      animPhase = "unfurl";
+      phaseStart = performance.now();
+      playDirection = 1;
+    }
+
+    function startPlayOnce(from = unfurl, to = 1) {
+      autoLoop = false;
+      animPhase = "once";
+      phaseStart = performance.now();
+      playDirection = to >= from ? 1 : -1;
+      animFrom = from;
+      animTo = to;
+    }
+
+    let animFrom = 0;
+    let animTo = 1;
+
+    function pauseAuto() {
+      autoLoop = false;
+      animPhase = "idle";
+    }
+
+    slider.addEventListener("pointerdown", pauseAuto);
+    slider.addEventListener("input", () => {
+      pauseAuto();
+      setUnfurl(Number(slider.value) / 100);
+    });
+
+    document.getElementById("resume-auto").addEventListener("click", startAutoLoop);
+    document.getElementById("play").addEventListener("click", () => startPlayOnce(unfurl, 1));
+    document.getElementById("reset").addEventListener("click", () => {
+      setUnfurl(0);
+      startAutoLoop();
+    });
+
+    function tick(now) {
+      if (autoLoop) {
+        const elapsed = now - phaseStart;
+
+        if (animPhase === "unfurl" || animPhase === "fold") {
+          const t = Math.min(1, elapsed / UNFURL_DURATION_MS);
+          const eased = easeInOut(t);
+          const value = animPhase === "unfurl" ? eased : 1 - eased;
+          setUnfurl(value);
+
+          if (t >= 1) {
+            if (animPhase === "unfurl") {
+              animPhase = "hold-open";
+              phaseStart = now;
+            } else {
+              animPhase = "hold-closed";
+              phaseStart = now;
+            }
+          }
+        } else if (animPhase === "hold-open" && elapsed >= HOLD_OPEN_MS) {
+          animPhase = "fold";
+          phaseStart = now;
+        } else if (animPhase === "hold-closed" && elapsed >= HOLD_CLOSED_MS) {
+          animPhase = "unfurl";
+          phaseStart = now;
+        }
+      } else if (animPhase === "once") {
+        const elapsed = now - phaseStart;
+        const t = Math.min(1, elapsed / UNFURL_DURATION_MS);
+        const eased = easeInOut(t);
+        const value = playDirection === 1
+          ? animFrom + (animTo - animFrom) * eased
+          : animTo + (animFrom - animTo) * eased;
+        setUnfurl(value);
+        if (t >= 1) animPhase = "idle";
+      }
+
+      requestAnimationFrame(tick);
+    }
+
+    applyUnfurl(0);
+    renderFrame();
+    setTimeout(startAutoLoop, AUTO_START_DELAY_MS);
+    requestAnimationFrame(tick);
+  </script>
+</body>
+</html>
