@@ -15,20 +15,47 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  ensure:
+    name: Enable GitHub Pages
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Enable Pages (GitHub Actions source)
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Ensure workflow build type via API
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/ensure-github-pages.sh
+
+  deploy:
+    name: Build and deploy site
+    needs: ensure
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
+
+      - name: Prepare static site
+        run: |
+          mkdir -p _site
+          cp index.html demo.html demo2.html .nojekyll _site/
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: _site
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
